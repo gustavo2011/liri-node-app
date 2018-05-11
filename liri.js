@@ -4,6 +4,7 @@ var Twitter = require('twitter');
 var keys = require("./keys.js");
 var Spotify = require("node-spotify-api");
 var request = require("request");
+var fs = require('fs');
 
 
 
@@ -20,6 +21,16 @@ var value = process.argv[3];
 
         case 'spotify-this-song':
         spotifySearch();
+        break;
+
+        case 'movie-this':
+        movieSearch(value);
+        break;
+
+        case 'do-what-it-says':
+        doThis();
+        break;
+
         
   } 
 
@@ -54,33 +65,76 @@ client.get('statuses/user_timeline', params, function(error, tweets, response) {
 function spotifySearch() {
 
     console.log("initializing funciton");
+    var spotify = new Spotify(keys.spotify);
 
     if(!value) {
-        value = "The Sign";
+        value = "The Sign by Ace of Base";
     }
-    var client = new Spotify(keys.spotify);
-    spotify.search({ type: 'track', query: song}, function(error, data) {
-        if (!error) {
-            for(var i= 0; i<data.tracks.items.length; i++) {
-             var songInfo = data.tracks.items[i];
-             console.log("Artist: " + songInfo.artits[0].name);
-        
+
+    
+
+    spotify.search({ type: 'track', query: value }, function(error, data, response) {
+        if (error) {
+
+            console.log('Error occurred: ' + error);
+             return;
+        }
+        var songInfo = data.tracks.items[0];
+        var songData =
+            "\r\n Artist: " + songInfo.artists[0].name +
+            "\r\n Song Title: " + songInfo.name +
+            "\r\n Song Preview: " + songInfo.preview_url ;
+
+        console.log(songData);
+        }); 
+     
+    }
+
+    function movieSearch() {
+
+        console.log("initializing function")
+        if (!value) {
+            value = 'Black Panther';
+        }
+        request("http://www.omdbapi.com/?t=" + value + "&y=&plot=short&apikey=trilogy", function (error, response, data) {
+    
+            if (!error && response.statusCode === 200) {
+    
+                var movieData = JSON.parse(data);
+                var movieInfo =
+                    "\r\n Title: " + movieData.Title +
+                    "\r\n Year: " + movieData.Year +
+                    "\r\n IMDB Rating: " + movieData.imdbRating +
+                    "\r\n Rotten Tomatoes Rating: " + movieData.Ratings[1].Value +
+                    "\r\n Country of Origin: " + movieData.Country +
+                    "\r\n Language: " + movieData.Language +
+                    "\r\n Plot: " + movieData.Plot +
+                    "\r\n Actors: " + movieData.Actors ;
+    
+                console.log(movieInfo)
+    
+    
+            } else {
+                console.log("Error Occured: " + error);
             }
-          
+        });
+    
+    }
+ 
+    
+function doThis() {
+
+    fs.readFile('random.txt', 'utf8', function (error, data) {
+        var randomArray = data.split(',');
+        value = randomArray[1];
+
+        if (error) {
+            console.log(error);
         } else {
-            return console.log('Error occurred: ' + error);
+            if (randomArray[0] === 'spotify-this-song') {
+                spotifySearch();
+            }
         }
     });
 } 
 
-
-function defaultSong() {
-    var client = new Spotify(keys.spotify);
-    spotify.lookup({ type: 'track', id: '3DYVWvPh3kGwPasp7yjahc'}, function(error, data){
-        if(!error){
-            return console.log('Error occurred: ' + error);
-        } else {
-            console.log("Artist: "+ songInfo.artits[0].name);
-        }
-    });
-}
